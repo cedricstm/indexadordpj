@@ -1,14 +1,13 @@
 package net.marcoreis.util;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
-import java.text.DateFormat;
-import java.util.Calendar;
+import java.text.SimpleDateFormat;
 import java.util.Date;
-
-import javax.swing.text.DateFormatter;
 
 import org.apache.log4j.Logger;
 
@@ -17,22 +16,44 @@ public class BaixadorDPJ {
 
 	public static void main(String[] args) throws IOException {
 
-		URL url = new URL("http://diario.tjrr.jus.br/dpj/dpj-20160411.pdf");
-		String destino = "/home/cedric/dpj/dpj-20160411.pdf";
+		Date data = new Date();
+		SimpleDateFormat formatador = new SimpleDateFormat();
+		formatador.applyPattern("dd");
+		String dia = formatador.format(data);
+		formatador.applyPattern("MM");
+		String mes = formatador.format(data);
+		formatador.applyPattern("yyyy");
+		String ano = formatador.format(data);
+
+		String nomeDoArquivo = null;
+		nomeDoArquivo = "dpj-" + ano + mes + dia + ".pdf";
+
+		System.out.println(nomeDoArquivo);
+
+		URL url = new URL("http://diario.tjrr.jus.br/dpj/" + nomeDoArquivo);
+		String destino = "/home/cedric/dpj/" + nomeDoArquivo;
 
 		InputStream is = url.openStream();
 
-		FileOutputStream fos = new FileOutputStream(destino);
+		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+		int codigo = conn.getResponseCode();
+		String texto;
+		if (codigo == conn.HTTP_NOT_FOUND) {
+			texto = "fora do ar";
+			logger.info(texto);
+		} else {
+			texto = "DPJ " + nomeDoArquivo + " publicado . . .";
+			logger.info(texto+conn.getContentLength()/1024+ " Kbytes");
 
-		int bytes = 0;
+			FileOutputStream fos = new FileOutputStream(destino);
+			int bytes = 0;
+			while ((bytes = is.read()) != -1) {
+				fos.write(bytes);
+			}
+			is.close();
+			fos.close();
 
-		while ((bytes = is.read()) != -1) {
-			fos.write(bytes);
 		}
-
-		is.close();
-
-		fos.close();
 
 	}
 }
